@@ -1,0 +1,65 @@
+[
+  {
+    "timestamp": "2026-08-31T09:10:00",
+    "user": "rincy",
+    "source_ip": "10.0.0.15",
+    "event": "ConsoleLogin",
+    "status": "Success"
+  },
+  {
+    "timestamp": "2026-08-31T09:15:00",
+    "user": "rincy",
+    "source_ip": "10.0.0.15",
+    "event": "S3ObjectAccess",
+    "status": "Success"
+  },
+  {
+    "timestamp": "2026-08-31T10:20:00",
+    "user": "admin",
+    "source_ip": "185.23.45.91",
+    "event": "ConsoleLogin",
+    "status": "Failed"
+  },
+  {
+    "timestamp": "2026-08-31T10:21:00",
+    "user": "admin",
+    "source_ip": "185.23.45.91",
+    "event": "ConsoleLogin",
+    "status": "Failed"
+  },
+  {
+    "timestamp": "2026-08-31T10:22:00",
+    "user": "admin",
+    "source_ip": "185.23.45.91",
+    "event": "ConsoleLogin",
+    "status": "Failed"
+  },
+  {
+    "timestamp": "2026-08-31T10:23:00",
+    "user": "admin",
+    "source_ip": "185.23.45.91",
+    "event": "ConsoleLogin",
+    "status": "Failed"
+  },
+  {
+    "timestamp": "2026-08-31T10:24:00",
+    "user": "admin",
+    "source_ip": "185.23.45.91",
+    "event": "ConsoleLogin",
+    "status": "Failed"
+  },
+  {
+    "timestamp": "2026-08-31T10:30:00",
+    "user": "admin",
+    "source_ip": "185.23.45.91",
+    "event": "IAMPolicyChange",
+    "status": "Success"
+  },
+  {
+    "timestamp": "2026-08-31T11:00:00",
+    "user": "developer",
+    "source_ip": "10.0.0.20",
+    "event": "S3ObjectAccess",
+    "status": "Success"
+  }
+]
