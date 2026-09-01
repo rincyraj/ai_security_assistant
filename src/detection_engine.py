@@ -100,6 +100,43 @@ def detect_suspicious_policy_change(logs, failed_login_threshold=5):
 
     return alerts
 
+def create_incidents(alerts):
+    incidents = []
+
+    brute_force_alerts = [
+        alert for alert in alerts
+        if alert["type"] == "Brute Force Attack"
+    ]
+
+    privilege_change_alerts = [
+        alert for alert in alerts
+        if alert["type"] == "Suspicious Privilege Change"
+    ]
+
+    for brute_force in brute_force_alerts:
+
+        for privilege_change in privilege_change_alerts:
+
+            if (
+                brute_force["user"] == privilege_change["user"]
+                and brute_force["source_ip"] == privilege_change["source_ip"]
+            ):
+                risk_score = 90
+
+                incident = {
+                    "incident_type": "Possible Account Compromise",
+                    "severity": "CRITICAL",
+                    "risk_score": risk_score,
+                    "user": brute_force["user"],
+                    "source_ip": brute_force["source_ip"],
+                    "failed_login_attempts": brute_force["failed_attempts"],
+                    "follow_up_event": privilege_change["event"],
+                    "time_window_minutes": 10
+                }
+
+                incidents.append(incident)
+
+    return incidents
 
 if __name__ == "__main__":
     logs = load_logs()
@@ -114,3 +151,10 @@ if __name__ == "__main__":
 
     for alert in alerts:
         print(alert)
+
+    incidents = create_incidents(alerts)
+
+    print("\nIncidents detected:", len(incidents))
+
+    for incident in incidents:
+        print(incident)
