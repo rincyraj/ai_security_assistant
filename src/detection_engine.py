@@ -121,7 +121,23 @@ def create_incidents(alerts):
                 brute_force["user"] == privilege_change["user"]
                 and brute_force["source_ip"] == privilege_change["source_ip"]
             ):
-                risk_score = 90
+                risk_score = 0
+
+                # Multiple failed login attempts
+                if brute_force["failed_attempts"] >= 5:
+                    risk_score += 30
+
+                # Sensitive admin account
+                if brute_force["user"].lower() == "admin":
+                    risk_score += 20
+
+                # IAM policy modification
+                if privilege_change["event"] == "IAMPolicyChange":
+                    risk_score += 30
+
+                # Same IP was involved in both events
+                if brute_force["source_ip"] == privilege_change["source_ip"]:
+                    risk_score += 5
 
                 incident = {
                     "incident_type": "Possible Account Compromise",
