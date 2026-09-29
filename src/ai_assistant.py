@@ -1,6 +1,11 @@
-def generate_security_summary(incident):
-    summary = f"""
-SECURITY INCIDENT
+from llm_client import LLMClient
+
+
+def build_security_prompt(incident):
+    prompt = f"""
+You are a cybersecurity analyst assisting with security incident investigation.
+
+Analyze the following security incident.
 
 Incident Type: {incident['incident_type']}
 Severity: {incident['severity']}
@@ -13,15 +18,27 @@ Failed Login Attempts: {incident['failed_login_attempts']}
 Follow-up Event: {incident['follow_up_event']}
 Time Window: {incident['time_window_minutes']} minutes
 
-Assessment:
-Multiple failed login attempts were followed by a successful
-IAM policy change involving the same user and source IP.
+Explain:
 
-This activity may indicate a possible account compromise and
-requires further investigation.
+1. What happened?
+2. Why is this activity suspicious?
+3. What evidence supports the assessment?
+4. What should a security analyst investigate next?
+
+Do not invent information that is not present in the incident.
 """
 
-    return summary
+    return prompt
+
+
+def generate_security_analysis(incident):
+    prompt = build_security_prompt(incident)
+
+    llm = LLMClient()
+
+    response = llm.generate(prompt)
+
+    return response
 
 
 if __name__ == "__main__":
@@ -36,4 +53,6 @@ if __name__ == "__main__":
         "time_window_minutes": 10
     }
 
-    print(generate_security_summary(test_incident))
+    analysis = generate_security_analysis(test_incident)
+
+    print(analysis)
