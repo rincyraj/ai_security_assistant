@@ -7,6 +7,8 @@ You are a cybersecurity analyst assisting with security incident investigation.
 
 Analyze the following security incident.
 
+INCIDENT DATA
+
 Incident Type: {incident['incident_type']}
 Severity: {incident['severity']}
 Risk Score: {incident['risk_score']}/100
@@ -18,16 +20,32 @@ Failed Login Attempts: {incident['failed_login_attempts']}
 Follow-up Event: {incident['follow_up_event']}
 Time Window: {incident['time_window_minutes']} minutes
 
-Explain:
+IMPORTANT RULES
 
-1. What happened?
-2. Why is this activity suspicious?
-3. What evidence supports the assessment?
-4. What should a security analyst investigate next?
+1. Only use facts explicitly provided in the incident data.
+2. Do not invent events, IP reputation, successful logins, attacker identity, or other evidence.
+3. Clearly distinguish observed evidence from your security assessment.
+4. Recommendations should be investigation steps, not claims that an attack definitely occurred.
+5. Return ONLY valid JSON.
+6. Do not use Markdown.
+7. Do not include ```json or any other code fences.
 
-Do not invent information that is not present in the incident.
+Return exactly this JSON structure:
+
+{{
+  "summary": "Short explanation of what happened",
+  "observed_evidence": [
+    "Evidence directly present in the incident data"
+  ],
+  "assessment": [
+    "Security interpretation based on the evidence"
+  ],
+  "recommended_investigation": [
+    "Investigation step"
+  ],
+  "confidence": "low|medium|high"
+}}
 """
-
     return prompt
 
 
