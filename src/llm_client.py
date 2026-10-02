@@ -21,7 +21,7 @@ class LLMClient:
     def generate(self, prompt):
         request_body = {
             "anthropic_version": "bedrock-2023-05-31",
-            "max_tokens": 500,
+            "max_tokens": 1000,
             "messages": [
                 {
                     "role": "user",
