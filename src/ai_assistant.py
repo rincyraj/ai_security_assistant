@@ -1,4 +1,5 @@
 from llm_client import LLMClient
+import json
 
 
 def build_security_prompt(incident):
@@ -71,6 +72,10 @@ if __name__ == "__main__":
         "time_window_minutes": 10
     }
 
-    analysis = generate_security_analysis(test_incident)
+    response = generate_security_analysis(test_incident)
+    analysis = json.loads(response)
 
     print(analysis)
+    print(analysis["summary"])
+    print(analysis["observed_evidence"])
+    print(analysis["recommended_investigation"])    
