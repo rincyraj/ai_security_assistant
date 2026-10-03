@@ -37,6 +37,9 @@ IMPORTANT RULES
 10. Do not map Account Manipulation (T1098) for an IAMPolicyChange event unless the incident data explicitly shows account or permission manipulation that matches the technique.
 11. If there is insufficient evidence for a MITRE ATT&CK technique, do not include it.
 12. If no MITRE ATT&CK technique is sufficiently supported, return an empty list.
+13. Remediation recommendations must be conditional on investigation findings and must not assume that compromise or unauthorized activity has been confirmed.
+14. Do not recommend remediation based on security controls or configurations that are not present in the incident data unless the recommendation is clearly presented as a general security improvement rather than an incident-specific action.
+
 
 Return exactly this JSON structure:
 
@@ -51,6 +54,9 @@ Return exactly this JSON structure:
   "recommended_investigation": [
     "Investigation step"
   ],
+  "recommended_remediation": [
+  "Conditional remediation action"
+],
   "confidence": "low|medium|high",
   mitre_attack": [
   {{"technique_id": "T1110",
@@ -79,9 +85,10 @@ def validate_analysis(analysis):
         "observed_evidence": list,
         "assessment": list,
         "recommended_investigation": list,
+        "recommended_remediation": list,
         "confidence": str,
         "mitre_attack": list,
-    }
+        }
 
     for field, expected_type in required_fields.items():
         if field not in analysis:
