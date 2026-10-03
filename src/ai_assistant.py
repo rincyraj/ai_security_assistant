@@ -23,6 +23,8 @@ Time Window: {incident['time_window_minutes']} minutes
 
 IMPORTANT RULES
 
+IMPORTANT RULES
+
 1. Only use facts explicitly provided in the incident data.
 2. Do not invent events, IP reputation, successful logins, attacker identity, or other evidence.
 3. Clearly distinguish observed evidence from your security assessment.
@@ -30,6 +32,11 @@ IMPORTANT RULES
 5. Return ONLY valid JSON.
 6. Do not use Markdown.
 7. Do not include ```json or any other code fences.
+8. Only map a MITRE ATT&CK technique when the observed evidence directly supports the technique.
+9. Do not map a technique based only on speculation or on what an event could potentially mean.
+10. Do not map Account Manipulation (T1098) for an IAMPolicyChange event unless the incident data explicitly shows account or permission manipulation that matches the technique.
+11. If there is insufficient evidence for a MITRE ATT&CK technique, do not include it.
+12. If no MITRE ATT&CK technique is sufficiently supported, return an empty list.
 
 Return exactly this JSON structure:
 
@@ -44,7 +51,14 @@ Return exactly this JSON structure:
   "recommended_investigation": [
     "Investigation step"
   ],
-  "confidence": "low|medium|high"
+  "confidence": "low|medium|high",
+  mitre_attack": [
+  {{"technique_id": "T1110",
+      "technique_name": "Brute Force",
+      "reason": "Five failed login attempts were observed against the admin account."
+    }}
+    
+]
 }}
 """
     return prompt
@@ -59,6 +73,31 @@ def generate_security_analysis(incident):
 
     return response
 
+def validate_analysis(analysis):
+    required_fields = {
+        "summary": str,
+        "observed_evidence": list,
+        "assessment": list,
+        "recommended_investigation": list,
+        "confidence": str,
+        "mitre_attack": list,
+    }
+
+    for field, expected_type in required_fields.items():
+        if field not in analysis:
+            raise ValueError(f"Missing required field: {field}")
+
+        if not isinstance(analysis[field], expected_type):
+            raise ValueError(
+                f"Field '{field}' must be {expected_type.__name__}"
+            )
+
+    if analysis["confidence"] not in {"low", "medium", "high"}:
+        raise ValueError(
+            "confidence must be one of: low, medium, high"
+        )
+
+    return True
 
 if __name__ == "__main__":
     test_incident = {
@@ -74,8 +113,12 @@ if __name__ == "__main__":
 
     response = generate_security_analysis(test_incident)
     analysis = json.loads(response)
+    validate_analysis(analysis)
 
-    print(analysis)
-    print(analysis["summary"])
-    print(analysis["observed_evidence"])
-    print(analysis["recommended_investigation"])    
+    print("AI analysis validation: PASSED")
+    print(json.dumps(analysis, indent=2))
+
+    # print(analysis)
+    # print(analysis["summary"])
+    # print(analysis["observed_evidence"])
+    # print(analysis["recommended_investigation"])        
