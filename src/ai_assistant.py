@@ -1,5 +1,12 @@
-from llm_client import LLMClient
 import json
+
+from llm_client import LLMClient
+from log_reader import load_logs
+from detection_engine import (
+    detect_failed_logins,
+    detect_suspicious_policy_change,
+    create_incidents,
+)
 
 
 def build_security_prompt(incident):
@@ -107,25 +114,28 @@ def validate_analysis(analysis):
     return True
 
 if __name__ == "__main__":
-    test_incident = {
-        "incident_type": "Possible Account Compromise",
-        "severity": "CRITICAL",
-        "risk_score": 85,
-        "user": "admin",
-        "source_ip": "185.23.45.91",
-        "failed_login_attempts": 5,
-        "follow_up_event": "IAMPolicyChange",
-        "time_window_minutes": 10
-    }
+    logs = load_logs()
 
-    response = generate_security_analysis(test_incident)
-    analysis = json.loads(response)
-    validate_analysis(analysis)
+    brute_force_alerts = detect_failed_logins(logs)
 
-    print("AI analysis validation: PASSED")
-    print(json.dumps(analysis, indent=2))
+    policy_change_alerts = detect_suspicious_policy_change(logs)
 
-    # print(analysis)
-    # print(analysis["summary"])
-    # print(analysis["observed_evidence"])
-    # print(analysis["recommended_investigation"])        
+    alerts = brute_force_alerts + policy_change_alerts
+
+    incidents = create_incidents(alerts)
+
+    print(f"Alerts detected: {len(alerts)}")
+    print(f"Incidents detected: {len(incidents)}")
+
+    for incident in incidents:
+        print("\nAnalyzing incident:")
+        print(json.dumps(incident, indent=2))
+
+        response = generate_security_analysis(incident)
+
+        analysis = json.loads(response)
+
+        validate_analysis(analysis)
+
+        print("\nAI analysis validation: PASSED")
+        print(json.dumps(analysis, indent=2))
