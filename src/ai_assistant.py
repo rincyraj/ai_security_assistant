@@ -8,6 +8,10 @@ from detection_engine import (
     detect_high_volume_s3_access,
     create_incidents,
 )
+from mitre_validator import (
+    validate_mitre_analysis,
+    validate_incident_mitre_mapping,
+)
 
 
 def build_security_prompt(incident):
@@ -103,7 +107,12 @@ def validate_analysis(analysis):
         raise ValueError(
             "confidence must be one of: low, medium, high"
         )
-
+    validate_mitre_analysis(analysis["mitre_attack"])
+    
+    validate_incident_mitre_mapping(
+    incident,
+    analysis["mitre_attack"]
+    )
     return True
 
 if __name__ == "__main__":

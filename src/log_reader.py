@@ -19,3 +19,4 @@ if __name__ == "__main__":
 
     for log in logs:
         print(log)
+        
