@@ -100,6 +100,59 @@ def detect_suspicious_policy_change(logs, failed_login_threshold=5):
 
     return alerts
 
+def detect_high_volume_s3_access(logs, threshold=5, window_minutes=5):
+    s3_accesses = {}
+
+    for log in logs:
+        if log["event"] == "S3ObjectAccess" and log["status"] == "Success":
+            key = (log["user"], log["source_ip"])
+            timestamp = datetime.fromisoformat(log["timestamp"])
+
+            if key not in s3_accesses:
+                s3_accesses[key] = []
+
+            s3_accesses[key].append({
+                "timestamp": timestamp,
+                "resource": log.get("resource")
+            })
+
+    alerts = []
+
+    for (user, source_ip), accesses in s3_accesses.items():
+
+        accesses.sort(key=lambda access: access["timestamp"])
+
+        for i in range(len(accesses)):
+
+            window_start = accesses[i]["timestamp"]
+
+            accesses_in_window = [
+                access
+                for access in accesses
+                if 0 <= (
+                    access["timestamp"] - window_start
+                ).total_seconds() <= window_minutes * 60
+            ]
+
+            if len(accesses_in_window) >= threshold:
+                alerts.append({
+                    "type": "High Volume S3 Access",
+                    "severity": "HIGH",
+                    "user": user,
+                    "source_ip": source_ip,
+                    "s3_accesses": len(accesses_in_window),
+                    "resources": [
+                        access["resource"]
+                        for access in accesses_in_window
+                        if access.get("resource")
+                    ],
+                    "window_minutes": window_minutes
+                })
+
+                break
+
+    return alerts
+
 def create_incidents(alerts):
     incidents = []
 
@@ -113,6 +166,12 @@ def create_incidents(alerts):
         if alert["type"] == "Suspicious Privilege Change"
     ]
 
+    s3_access_alerts = [
+        alert for alert in alerts
+        if alert["type"] == "High Volume S3 Access"
+    ]
+
+    # Incident 1: Possible Account Compromise
     for brute_force in brute_force_alerts:
 
         for privilege_change in privilege_change_alerts:
@@ -152,6 +211,28 @@ def create_incidents(alerts):
 
                 incidents.append(incident)
 
+    # Incident 2: Possible Data Access Anomaly
+    for s3_access in s3_access_alerts:
+
+        risk_score = 25
+
+        # Higher risk if many objects were accessed
+        if s3_access["s3_accesses"] >= 5:
+            risk_score += 15
+
+        incident = {
+            "incident_type": "Possible Data Access Anomaly",
+            "severity": "HIGH",
+            "risk_score": risk_score,
+            "user": s3_access["user"],
+            "source_ip": s3_access["source_ip"],
+            "s3_accesses": s3_access["s3_accesses"],
+            "resources": s3_access["resources"],
+            "time_window_minutes": s3_access["window_minutes"]
+        }
+
+        incidents.append(incident)
+
     return incidents
 
 if __name__ == "__main__":
@@ -160,8 +241,13 @@ if __name__ == "__main__":
     brute_force_alerts = detect_failed_logins(logs)
 
     policy_change_alerts = detect_suspicious_policy_change(logs)
+    s3_access_alerts = detect_high_volume_s3_access(logs)
 
-    alerts = brute_force_alerts + policy_change_alerts
+    alerts = (
+        brute_force_alerts
+        + policy_change_alerts
+        + s3_access_alerts
+    )
 
     print(f"Alerts detected: {len(alerts)}")
 
