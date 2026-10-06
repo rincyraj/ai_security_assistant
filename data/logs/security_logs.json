@@ -11,7 +11,8 @@
     "user": "rincy",
     "source_ip": "10.0.0.15",
     "event": "S3ObjectAccess",
-    "status": "Success"
+    "status": "Success",
+    "resource": "s3://company-data/report.csv"
   },
   {
     "timestamp": "2026-08-31T10:20:00",
@@ -60,6 +61,39 @@
     "user": "developer",
     "source_ip": "10.0.0.20",
     "event": "S3ObjectAccess",
-    "status": "Success"
-  }
+    "status": "Success",
+    "resource": "s3://company-data/app-config.json"
+  },
+  {
+  "timestamp": "2026-08-31T11:01:00",
+  "user": "developer",
+  "source_ip": "10.0.0.20",
+  "event": "S3ObjectAccess",
+  "status": "Success",
+  "resource": "s3://company-data/customer-data.csv"
+},
+{
+  "timestamp": "2026-08-31T11:02:00",
+  "user": "developer",
+  "source_ip": "10.0.0.20",
+  "event": "S3ObjectAccess",
+  "status": "Success",
+  "resource": "s3://company-data/employee-data.csv"
+},
+{
+  "timestamp": "2026-08-31T11:03:00",
+  "user": "developer",
+  "source_ip": "10.0.0.20",
+  "event": "S3ObjectAccess",
+  "status": "Success",
+  "resource": "s3://company-data/financial-data.csv"
+},
+{
+  "timestamp": "2026-08-31T11:04:00",
+  "user": "developer",
+  "source_ip": "10.0.0.20",
+  "event": "S3ObjectAccess",
+  "status": "Success",
+  "resource": "s3://company-data/internal-data.csv"
+}
 ]

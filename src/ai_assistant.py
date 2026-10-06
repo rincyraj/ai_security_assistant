@@ -5,75 +5,68 @@ from log_reader import load_logs
 from detection_engine import (
     detect_failed_logins,
     detect_suspicious_policy_change,
+    detect_high_volume_s3_access,
     create_incidents,
 )
 
 
 def build_security_prompt(incident):
+    incident_data = json.dumps(incident, indent=2)
+
     prompt = f"""
-You are a cybersecurity analyst assisting with security incident investigation.
+You are a cybersecurity incident analysis assistant.
 
-Analyze the following security incident.
+Analyze the following incident data.
 
-INCIDENT DATA
+INCIDENT DATA:
+{incident_data}
 
-Incident Type: {incident['incident_type']}
-Severity: {incident['severity']}
-Risk Score: {incident['risk_score']}/100
+Your task is to provide a structured security analysis based ONLY on the information explicitly present in the incident data.
 
-User: {incident['user']}
-Source IP: {incident['source_ip']}
+Return ONLY valid JSON using exactly this structure:
 
-Failed Login Attempts: {incident['failed_login_attempts']}
-Follow-up Event: {incident['follow_up_event']}
-Time Window: {incident['time_window_minutes']} minutes
+{{
+  "summary": "Brief summary of the incident based only on the provided evidence.",
+  "observed_evidence": [
+    "Facts directly observed in the incident data."
+  ],
+  "assessment": [
+    "Security interpretation of the observed evidence."
+  ],
+  "recommended_investigation": [
+    "Investigation steps that would help determine whether the activity is legitimate or unauthorized."
+  ],
+  "recommended_remediation": [
+    "Conditional remediation actions based on investigation findings."
+  ],
+  "confidence": "low",
+  "mitre_attack": [
+    {{
+      "technique_id": "TXXXX",
+      "technique_name": "Technique name",
+      "reason": "Reason the observed evidence directly supports this technique."
+    }}
+  ]
+}}
 
-IMPORTANT RULES
-
-IMPORTANT RULES
+IMPORTANT RULES:
 
 1. Only use facts explicitly provided in the incident data.
 2. Do not invent events, IP reputation, successful logins, attacker identity, or other evidence.
-3. Clearly distinguish observed evidence from your security assessment.
-4. Recommendations should be investigation steps, not claims that an attack definitely occurred.
+3. Clearly distinguish observed evidence from security assessment.
+4. Recommended investigation steps must investigate the incident; do not claim that an attack or compromise definitely occurred.
 5. Return ONLY valid JSON.
 6. Do not use Markdown.
-7. Do not include ```json or any other code fences.
-8. Only map a MITRE ATT&CK technique when the observed evidence directly supports the technique.
-9. Do not map a technique based only on speculation or on what an event could potentially mean.
-10. Do not map Account Manipulation (T1098) for an IAMPolicyChange event unless the incident data explicitly shows account or permission manipulation that matches the technique.
+7. Do not use code fences.
+8. Only map a MITRE ATT&CK technique when the observed incident evidence directly supports it.
+9. Do not map a MITRE technique based only on speculation or what an event could potentially mean.
+10. Do not map Account Manipulation (T1098) for IAMPolicyChange unless the incident data explicitly shows account or permission manipulation matching that technique.
 11. If there is insufficient evidence for a MITRE ATT&CK technique, do not include it.
 12. If no MITRE ATT&CK technique is sufficiently supported, return an empty list.
-13. Remediation recommendations must be conditional on investigation findings and must not assume that compromise or unauthorized activity has been confirmed.
-14. Do not recommend remediation based on security controls or configurations that are not present in the incident data unless the recommendation is clearly presented as a general security improvement rather than an incident-specific action.
-
-
-Return exactly this JSON structure:
-
-{{
-  "summary": "Short explanation of what happened",
-  "observed_evidence": [
-    "Evidence directly present in the incident data"
-  ],
-  "assessment": [
-    "Security interpretation based on the evidence"
-  ],
-  "recommended_investigation": [
-    "Investigation step"
-  ],
-  "recommended_remediation": [
-  "Conditional remediation action"
-],
-  "confidence": "low|medium|high",
-  mitre_attack": [
-  {{"technique_id": "T1110",
-      "technique_name": "Brute Force",
-      "reason": "Five failed login attempts were observed against the admin account."
-    }}
-    
-]
-}}
+13. Remediation recommendations must be conditional on investigation findings and must not assume compromise or unauthorized activity has been confirmed.
+14. Do not recommend incident-specific remediation based on controls or configurations that are not present in the incident data. General security improvements are allowed.
 """
+
     return prompt
 
 
@@ -119,8 +112,9 @@ if __name__ == "__main__":
     brute_force_alerts = detect_failed_logins(logs)
 
     policy_change_alerts = detect_suspicious_policy_change(logs)
+    s3_access_alerts = detect_high_volume_s3_access(logs)
 
-    alerts = brute_force_alerts + policy_change_alerts
+    alerts = brute_force_alerts + policy_change_alerts+ s3_access_alerts
 
     incidents = create_incidents(alerts)
 
