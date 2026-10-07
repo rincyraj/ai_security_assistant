@@ -153,6 +153,39 @@ def detect_high_volume_s3_access(logs, threshold=5, window_minutes=5):
 
     return alerts
 
+def calculate_account_compromise_risk(
+    brute_force,
+    privilege_change
+):
+    risk_score = 0
+
+    # Multiple failed login attempts
+    if brute_force["failed_attempts"] >= 5:
+        risk_score += 30
+
+    # Sensitive admin account
+    if brute_force["user"].lower() == "admin":
+        risk_score += 20
+
+    # IAM policy modification
+    if privilege_change["event"] == "IAMPolicyChange":
+        risk_score += 30
+
+    # Same IP was involved in both events
+    if brute_force["source_ip"] == privilege_change["source_ip"]:
+        risk_score += 5
+
+    return risk_score
+
+def calculate_data_access_risk(s3_access):
+    risk_score = 25
+
+    # Higher risk if many objects were accessed
+    if s3_access["s3_accesses"] >= 5:
+        risk_score += 15
+
+    return risk_score
+
 def create_incidents(alerts):
     incidents = []
 
@@ -175,29 +208,14 @@ def create_incidents(alerts):
     for brute_force in brute_force_alerts:
 
         for privilege_change in privilege_change_alerts:
+            if (brute_force["user"] == privilege_change["user"] 
+              and brute_force["source_ip"] == privilege_change["source_ip"] ): 
+                risk_score = calculate_account_compromise_risk(
+                    brute_force,
+                    privilege_change
+                )
 
-            if (
-                brute_force["user"] == privilege_change["user"]
-                and brute_force["source_ip"] == privilege_change["source_ip"]
-            ):
-                risk_score = 0
-
-                # Multiple failed login attempts
-                if brute_force["failed_attempts"] >= 5:
-                    risk_score += 30
-
-                # Sensitive admin account
-                if brute_force["user"].lower() == "admin":
-                    risk_score += 20
-
-                # IAM policy modification
-                if privilege_change["event"] == "IAMPolicyChange":
-                    risk_score += 30
-
-                # Same IP was involved in both events
-                if brute_force["source_ip"] == privilege_change["source_ip"]:
-                    risk_score += 5
-
+            
                 incident = {
                     "incident_type": "Possible Account Compromise",
                     "severity": "CRITICAL",
@@ -213,12 +231,7 @@ def create_incidents(alerts):
 
     # Incident 2: Possible Data Access Anomaly
     for s3_access in s3_access_alerts:
-
-        risk_score = 25
-
-        # Higher risk if many objects were accessed
-        if s3_access["s3_accesses"] >= 5:
-            risk_score += 15
+        risk_score = calculate_data_access_risk(s3_access)
 
         incident = {
             "incident_type": "Possible Data Access Anomaly",
