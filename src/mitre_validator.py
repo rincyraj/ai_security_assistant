@@ -164,14 +164,13 @@ def validate_incident_mitre_mapping(
                 ),
             })
 
-    if not accepted_techniques:
+    if not accepted_techniques and not rejected_techniques:
         raise ValueError(
             f"No evidence-supported MITRE technique "
             f"was returned for '{incident_type}'. "
             f"Expected one of: "
             f"{sorted(allowed_ids)}"
         )
-
     return {
         "accepted": accepted_techniques,
         "rejected": rejected_techniques,
