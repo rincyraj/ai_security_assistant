@@ -192,8 +192,7 @@ header_col1, header_col2 = st.columns([5, 1])
 with header_col1:
 
     st.title("🛡️ AI Security Assistant")
-    st.caption("Build: 1e5ff7c")
-
+   
     st.caption(
         "AI-powered security monitoring and incident analysis"
     )
