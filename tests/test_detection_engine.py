@@ -400,6 +400,10 @@ def test_create_incidents_from_alerts():
     incidents = create_incidents(alerts)
 
     assert len(incidents) == 2
+    assert (
+    incidents[0]["correlation_window_minutes"]
+    == 10
+)
 
     assert incidents[0]["incident_type"] == (
         "Possible Account Compromise"
