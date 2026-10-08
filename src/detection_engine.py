@@ -51,7 +51,7 @@ def detect_failed_logins(logs, threshold=5, window_minutes=5):
 
     return alerts
 
-def detect_suspicious_policy_change(logs, failed_login_threshold=5):
+def detect_suspicious_policy_change(logs, failed_login_threshold=5,correlation_window_minutes=10,):
     alerts = []
 
     failed_logins = {}
@@ -85,7 +85,7 @@ def detect_suspicious_policy_change(logs, failed_login_threshold=5):
                     timestamp
                     for timestamp in timestamps
                     if 0 <= (policy_timestamp - timestamp).total_seconds()
-                    <= 10 * 60
+                    <= correlation_window_minutes * 60
                 ]
 
                 if len(recent_failures) >= failed_login_threshold:
@@ -224,7 +224,7 @@ def create_incidents(alerts):
                     "source_ip": brute_force["source_ip"],
                     "failed_login_attempts": brute_force["failed_attempts"],
                     "follow_up_event": privilege_change["event"],
-                    "time_window_minutes": 10
+                    "correlation_window_minutes": 10
                 }
 
                 incidents.append(incident)
