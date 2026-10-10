@@ -1,7 +1,5 @@
 import sys
 
-from sympy import python
-
 sys.path.insert(0, "src")
 
 

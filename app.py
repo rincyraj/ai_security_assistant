@@ -1,5 +1,6 @@
 import json
 import sys
+import subprocess
 
 import streamlit as st
 
@@ -192,7 +193,17 @@ header_col1, header_col2 = st.columns([5, 1])
 with header_col1:
 
     st.title("🛡️ AI Security Assistant")
-   
+    try:
+        build_ref = subprocess.check_output(
+            ["git", "rev-parse", "--short", "HEAD"],
+            stderr=subprocess.DEVNULL,
+            text=True
+        ).strip()
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        build_ref = "unknown"
+    st.caption(f"Build: {build_ref}")
+    
+
     st.caption(
         "AI-powered security monitoring and incident analysis"
     )

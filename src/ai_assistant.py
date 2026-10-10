@@ -11,82 +11,95 @@ from detection_engine import (
 )
 from mitre_validator import (
     validate_mitre_analysis,
-    validate_incident_mitre_mapping,
+    validate_incident_mitre_mapping, MITRE_TECHNIQUES
 )
 
 
 def build_security_prompt(incident):
     incident_data = json.dumps(incident, indent=2)
+    supported_mitre = json.dumps(
+    MITRE_TECHNIQUES,
+    indent=2
+)
 
     prompt = f"""
-You are a cybersecurity incident analysis assistant.
+    You are a cybersecurity incident analysis assistant.
 
-Analyze the following incident data.
+    Analyze the following incident data.
 
-INCIDENT DATA:
-{incident_data}
+    INCIDENT DATA:
+    {incident_data}
+    SUPPORTED MITRE ATT&CK TECHNIQUES:
+    {supported_mitre}
 
-Your task is to provide a structured security analysis based ONLY on
-the information explicitly present in the incident data.
+    Your task is to provide a structured security analysis based ONLY on
+    the information explicitly present in the incident data.
 
-Return ONLY valid JSON.
+    Return ONLY valid JSON.
 
-Use exactly this structure:
+    Use exactly this structure:
 
-{{
-  "summary": "Brief summary of the incident based only on the provided evidence.",
-  "observed_evidence": [
-    "Complete sentence describing one directly observed fact."
-  ],
-  "assessment": [
-    "Complete sentence describing one security interpretation."
-  ],
-  "recommended_investigation": [
-    "Complete sentence describing one investigation step."
-  ],
-  "recommended_remediation": [
-    "Complete sentence describing one conditional remediation action."
-  ],
-  "confidence": "low",
-  "mitre_attack": [
     {{
-      "technique_id": "TXXXX",
-      "technique_name": "Technique name",
-      "reason": "Reason the observed evidence directly supports this technique."
+    "summary": "Brief summary of the incident based only on the provided evidence.",
+    "observed_evidence": [
+        "Complete sentence describing one directly observed fact."
+    ],
+    "assessment": [
+        "Complete sentence describing one security interpretation."
+    ],
+    "recommended_investigation": [
+        "Complete sentence describing one investigation step."
+    ],
+    "recommended_remediation": [
+        "Complete sentence describing one conditional remediation action."
+    ],
+    "confidence": "low",
+    "mitre_attack": [
+        {{
+        "technique_id": "TXXXX",
+        "technique_name": "Technique name",
+        "reason": "Reason the observed evidence directly supports this technique."
+        }}
+    ]
     }}
-  ]
-}}
 
-IMPORTANT OUTPUT RULES:
+    IMPORTANT OUTPUT RULES:
 
-1. Return ONLY valid JSON.
-2. Do not use Markdown.
-3. Do not use code fences.
-4. Do not use bullet points.
-5. Do not put "-", "*", "•", or other bullet characters as array items.
-6. Every item in every array must be a complete, meaningful sentence.
-7. Do not return empty strings.
-8. Each recommendation must contain an actual investigation or remediation action.
-9. Do not repeat the same recommendation.
-10. If there are no valid items for an optional array, return [].
-11. Only use facts explicitly provided in the incident data.
-12. Do not invent events, IP reputation, successful logins, attacker identity, or other evidence.
-13. Clearly distinguish observed evidence from security assessment.
-14. Recommended investigation steps must investigate the incident; do not claim that an attack or compromise definitely occurred.
-15. Recommended remediation actions must be conditional on investigation findings.
-16. Do not assume that compromise or unauthorized activity has been confirmed.
-17. Do not recommend incident-specific remediation based on controls or configurations that are not present in the incident data.
-18. General security improvements are allowed.
-19. Only map a MITRE ATT&CK technique when the observed incident evidence directly supports it.
-20. Do not map a MITRE technique based only on speculation.
-21. Do not map Account Manipulation (T1098) for IAMPolicyChange unless the incident data explicitly shows account or permission manipulation matching that technique.
-22. If there is insufficient evidence for a MITRE ATT&CK technique, do not include it.
-23. If no MITRE ATT&CK technique is sufficiently supported, return an empty list.
-24. Confidence must be exactly one of: "low", "medium", "high".
+    1. Return ONLY valid JSON.
+    2. Do not use Markdown.
+    3. Do not use code fences.
+    4. Do not use bullet points.
+    5. Do not put "-", "*", "•", or other bullet characters as array items.
+    6. Every item in every array must be a complete, meaningful sentence.
+    7. Do not return empty strings.
+    8. Each recommendation must contain an actual investigation or remediation action.
+    9. Do not repeat the same recommendation.
+    10. If there are no valid items for an optional array, return [].
+    11. Only use facts explicitly provided in the incident data.
+    12. Do not invent events, IP reputation, successful logins, attacker identity, or other evidence.
+    13. Clearly distinguish observed evidence from security assessment.
+    14. Recommended investigation steps must investigate the incident; do not claim that an attack or compromise definitely occurred.
+    15. Recommended remediation actions must be conditional on investigation findings.
+    16. Do not assume that compromise or unauthorized activity has been confirmed.
+    17. Do not recommend incident-specific remediation based on controls or configurations that are not present in the incident data.
+    18. General security improvements are allowed.
+    19. Only map a MITRE ATT&CK technique when the observed incident evidence directly supports it.
+    20. Do not map a MITRE technique based only on speculation.
+    21. Do not map Account Manipulation (T1098) for IAMPolicyChange unless the incident data explicitly shows account or permission manipulation matching that technique.
+    22. If there is insufficient evidence for a MITRE ATT&CK technique, do not include it.
+    23. If no MITRE ATT&CK technique is sufficiently supported, return an empty list.
+    24. Confidence must be exactly one of: "low", "medium", "high".
+    25. Use only technique IDs and names from the SUPPORTED MITRE ATT&CK TECHNIQUES catalogue.
+    26. The technique name must match the catalogue entry for the selected ID.
+    27. Map a technique only when the incident evidence supports it; do not invent missing events or actions.
+    28. If the evidence is insufficient, return an empty "mitre_attack" array.
+    29. Do not assume that a failed login proves valid credentials were used.
+    30. Do not assume that an IAM policy change automatically establishes a specific MITRE technique.
+        
 
-Before returning the JSON, verify that every array item is a
-non-empty complete sentence and does not contain only "-", "*", or "•".
-"""
+    Before returning the JSON, verify that every array item is a
+    non-empty complete sentence and does not contain only "-", "*", or "•".
+    """
 
     return prompt
 
@@ -196,9 +209,13 @@ def validate_analysis(analysis, incident):
         )
 
     # Validate MITRE ATT&CK analysis
-    validate_mitre_analysis(
-        analysis["mitre_attack"]
-    )
+    try:
+        validate_mitre_analysis(
+            analysis["mitre_attack"]
+        )
+    except (ValueError, TypeError) as exc:
+        print(f"MITRE validation failed: {exc}")
+        analysis["mitre_attack"] = []
 
     # Validate incident-specific MITRE mapping
     validate_incident_mitre_mapping(
