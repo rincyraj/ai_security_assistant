@@ -232,27 +232,101 @@ def validate_analysis(analysis, incident):
 
     return True
 
+SAMPLE_ANALYSES = {
+    "Possible Account Compromise": {
+        "summary": (
+            "Five failed login attempts against the admin account "
+            "were correlated with an IAM policy change from the same "
+            "source IP within a 10-minute window. This is suspicious "
+            "activity that requires investigation; account compromise "
+            "has not been confirmed."
+        ),
+        "observed_evidence": [
+            "Five failed login attempts were recorded for the admin account.",
+            "The source IP associated with the incident is 185.23.45.91.",
+            "An IAMPolicyChange follow-up event was correlated within a 10-minute window."
+        ],
+        "assessment": [
+            "The combination of repeated failed logins and a subsequent IAM policy change warrants investigation.",
+            "The available evidence does not establish whether a login succeeded or whether the policy change was unauthorized."
+        ],
+        "recommended_investigation": [
+            "Review authentication logs around the failed login attempts to determine whether any subsequent login succeeded.",
+            "Inspect the IAM policy change audit event to identify the affected policy, the principal that made the change, and whether the change was authorized."
+        ],
+        "recommended_remediation": [
+            "If the policy change is confirmed to be unauthorized, revert it through the approved change process and review the affected permissions.",
+            "If suspicious account access is confirmed, follow the organization's account containment and credential-reset procedures."
+        ],
+        "confidence": "medium",
+        "mitre_attack": [
+            {
+                "technique_id": "T1110",
+                "technique_name": "Brute Force",
+                "reason": "Five failed login attempts were recorded against the admin account."
+            }
+        ]
+    },
+    "Possible Data Access Anomaly": {
+        "summary": (
+            "The developer account accessed five S3 resources within "
+            "a five-minute window. The resources include customer, "
+            "employee, financial, application configuration, and "
+            "internal data files. The available evidence does not "
+            "establish whether the access was unauthorized."
+        ),
+        "observed_evidence": [
+            "Five S3 resources were associated with the developer account within a five-minute window.",
+            "The source IP recorded for this incident is 10.0.0.20.",
+            "The listed resources include customer-data.csv, employee-data.csv, and financial-data.csv."
+        ],
+        "assessment": [
+            "The concentration of access across multiple data resources may warrant review against the developer account's expected duties and access patterns.",
+            "The available event data does not establish data exfiltration or unauthorized access."
+        ],
+        "recommended_investigation": [
+            "Review S3 audit logs to confirm which operations were performed on each resource and whether they were authorized.",
+            "Compare the access with the developer account's approved permissions, recent work, and normal access patterns."
+        ],
+        "recommended_remediation": [
+            "If unauthorized access is confirmed, restrict the affected permissions using the approved access-management process.",
+            "If the access violates data-handling requirements, follow the organization's incident-response and data-protection procedures."
+        ],
+       "confidence": "medium",
+        "mitre_attack": [
+    {
+        "technique_id": "T1530",
+        "technique_name": "Data from Cloud Storage",
+        "reason": (
+            "The incident involves access to multiple S3 data resources. "
+            "This technique is a candidate for investigation; the available "
+            "evidence does not establish unauthorized access."
+        )
+    }
+]
+    }
+}
+
 def run_security_analysis(logs=None):
     """
     Run the security detection pipeline.
 
-    Demo mode: detect alerts and incidents without calling Bedrock.
-    Live mode: generate and validate AI analysis using Bedrock.
+    Demo mode: use saved analyses for default sample logs only.
+    Live mode: generate and validate analysis using Bedrock.
+    Uploaded logs in demo mode receive detection results only.
     """
 
-    if logs is None:
+    using_sample_logs = logs is None
+
+    if using_sample_logs:
         logs = load_logs()
 
     # Step 1: Detect security alerts
     brute_force_alerts = detect_failed_logins(logs)
 
-    policy_change_alerts = detect_suspicious_policy_change(
-        logs
-    )
+    policy_change_alerts = detect_suspicious_policy_change(logs)
 
-    s3_access_alerts = detect_high_volume_s3_access(
-        logs
-    )
+    s3_access_alerts = detect_high_volume_s3_access(logs)
 
     alerts = (
         brute_force_alerts
@@ -263,7 +337,7 @@ def run_security_analysis(logs=None):
     # Step 2: Create correlated security incidents
     incidents = create_incidents(alerts)
 
-    # Step 3: Call Bedrock only in explicitly enabled live mode
+    # Step 3: Generate analyses according to the selected mode
     analyses = []
 
     if is_live_ai_enabled():
@@ -271,20 +345,35 @@ def run_security_analysis(logs=None):
             response = generate_security_analysis(incident)
             analysis = json.loads(response)
 
-            validate_analysis(
-                analysis,
-                incident,
-            )
+            validate_analysis(analysis, incident)
 
             analyses.append({
                 "incident": incident,
                 "analysis": analysis,
             })
 
+    elif using_sample_logs:
+        for incident in incidents:
+            sample_analysis = SAMPLE_ANALYSES.get(
+                incident["incident_type"]
+            )
+
+            if sample_analysis is not None:
+                # Copy nested data so validation cannot alter the fixture.
+                analysis = json.loads(json.dumps(sample_analysis))
+
+                validate_analysis(analysis, incident)
+
+                analyses.append({
+                    "incident": incident,
+                    "analysis": analysis,
+                })
+
+        print("Demo mode: Using saved sample incident analyses.")
+
     else:
         print(
-            "Demo mode: Bedrock is disabled. "
-            "Alerts and incidents were detected without AI analysis."
+            "Demo mode: Uploaded logs analyzed without live AI analysis."
         )
 
     return {
@@ -292,6 +381,7 @@ def run_security_analysis(logs=None):
         "incidents": incidents,
         "analyses": analyses,
     }
+
 
 
 if __name__ == "__main__":
