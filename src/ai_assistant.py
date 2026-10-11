@@ -14,6 +14,9 @@ from mitre_validator import (
     validate_incident_mitre_mapping, MITRE_TECHNIQUES
 )
 
+def is_live_ai_enabled():
+    """Enable Bedrock only when explicitly requested."""
+    return os.getenv("AI_MODE", "demo").strip().lower() == "live"
 
 def build_security_prompt(incident):
     incident_data = json.dumps(incident, indent=2)
@@ -229,13 +232,12 @@ def validate_analysis(analysis, incident):
 
     return True
 
-
 def run_security_analysis(logs=None):
     """
-    Run the complete security analysis pipeline.
+    Run the security detection pipeline.
 
-    Returns:
-        dict containing alerts, incidents, and AI analyses.
+    Demo mode: detect alerts and incidents without calling Bedrock.
+    Live mode: generate and validate AI analysis using Bedrock.
     """
 
     if logs is None:
@@ -261,26 +263,29 @@ def run_security_analysis(logs=None):
     # Step 2: Create correlated security incidents
     incidents = create_incidents(alerts)
 
-    # Step 3: Generate and validate AI analysis
+    # Step 3: Call Bedrock only in explicitly enabled live mode
     analyses = []
 
-    for incident in incidents:
+    if is_live_ai_enabled():
+        for incident in incidents:
+            response = generate_security_analysis(incident)
+            analysis = json.loads(response)
 
-        response = generate_security_analysis(
-            incident
+            validate_analysis(
+                analysis,
+                incident,
+            )
+
+            analyses.append({
+                "incident": incident,
+                "analysis": analysis,
+            })
+
+    else:
+        print(
+            "Demo mode: Bedrock is disabled. "
+            "Alerts and incidents were detected without AI analysis."
         )
-
-        analysis = json.loads(response)
-
-        validate_analysis(
-            analysis,
-            incident,
-        )
-
-        analyses.append({
-            "incident": incident,
-            "analysis": analysis,
-        })
 
     return {
         "alerts": alerts,

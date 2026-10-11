@@ -1,4 +1,5 @@
 import json
+import os
 import sys
 import subprocess
 
@@ -233,7 +234,10 @@ with st.sidebar:
 
     st.success("Detection Engine Online")
     st.success("MITRE Validator Online")
-    st.success("Bedrock AI Online")
+    if os.getenv("AI_MODE", "demo").strip().lower() == "live":
+        st.success("Bedrock AI Enabled")
+    else:
+        st.info("Bedrock AI Disabled (Demo Mode)")
 
     st.divider()
 
@@ -502,71 +506,54 @@ with metric4:
 # Security Incidents
 # --------------------------------------------------
 
+
 st.markdown("## Security Incidents")
 
+if incidents:
 
-if analyses:
+    card_columns = st.columns(min(len(incidents), 2))
 
-    card_columns = st.columns(
-        min(len(analyses), 2)
-    )
-
-
-    for index, item in enumerate(analyses):
-
-        incident = item["incident"]
+    for index, incident in enumerate(incidents):
 
         severity = incident["severity"]
-
 
         with card_columns[index % 2]:
 
             if severity == "CRITICAL":
-
                 st.error(
                     f"🔴 {severity} — "
                     f"{incident['incident_type']}"
                 )
 
             elif severity == "HIGH":
-
                 st.warning(
                     f"🟠 {severity} — "
                     f"{incident['incident_type']}"
                 )
 
             else:
-
                 st.info(
                     f"🔵 {severity} — "
                     f"{incident['incident_type']}"
                 )
-
 
             st.markdown(
                 f"### Risk Score: "
                 f"{incident['risk_score']} / 100"
             )
 
-
             st.markdown(
                 f"**User:** `{incident['user']}`"
             )
-
 
             st.markdown(
                 f"**Source IP:** `{incident['source_ip']}`"
             )
 
-
             st.divider()
 
-
 else:
-
-    st.success(
-        "No security incidents detected."
-    )
+    st.success("No security incidents detected.")
 
 
 # --------------------------------------------------
@@ -583,11 +570,12 @@ incident_names = [
 
 
 if not incident_names:
-
-    st.success(
-        "No incidents available for analysis."
+    st.info(
+        "Demo mode: Live AI analysis is disabled. "
+        "Alerts and incidents are displayed above, "
+        "but AI-generated explanations are unavailable. "
+        "To test Bedrock locally, set AI_MODE=live."
     )
-
     st.stop()
 
 
