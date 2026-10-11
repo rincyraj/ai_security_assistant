@@ -19,3 +19,7 @@ Amazon Bedrock---->AI investigation layer.
 Claude Sonnet 4
        ↓
 AI Security Analysis
+
+
+Command to run app.py locally:
+streamlit run app.py
