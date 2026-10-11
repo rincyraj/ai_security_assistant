@@ -217,11 +217,15 @@ def validate_analysis(analysis, incident):
         print(f"MITRE validation failed: {exc}")
         analysis["mitre_attack"] = []
 
-    # Validate incident-specific MITRE mapping
-    validate_incident_mitre_mapping(
+   # Validate incident-specific MITRE mapping
+    mitre_validation = validate_incident_mitre_mapping(
         incident,
         analysis["mitre_attack"]
     )
+
+    # Only expose evidence-supported techniques to the UI
+    analysis["mitre_attack"] = mitre_validation["accepted"]
+    analysis["mitre_rejected"] = mitre_validation["rejected"]
 
     return True
 
